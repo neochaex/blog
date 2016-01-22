@@ -3,8 +3,7 @@
 
 <dom-module id="neo-login">
   <template>
-    <style include="shared-styles"></style>
-    <style>
+    <style include="shared-styles">
       paper-dialog {
         background-color:white;
         width:350px;
@@ -20,6 +19,9 @@
       }
       paper-button.google {
         background-color: #dc4e41;
+      }
+      paper-menu-button {
+        padding:0;
       }
       .hide {
         display: none !important;
@@ -52,6 +54,10 @@
         font-size: small;
         cursor: pointer;
       }
+      a {
+        text-decoration: none;
+        color: white;
+      }
     </style>
     <firebase-auth id="firebaseLogin" 
       user="{{user}}"
@@ -65,12 +71,12 @@
     </div>
     <div class="logout-container hide">
       <paper-menu-button id="userProfileMenu">
-        <paper-icon-button id="userIconImage" class="dropdown-trigger" src="[[gravatar]]" alt="Edit Profile" title="Edit Profile"></paper-icon-button>
+        <paper-icon-button id="userIconImage" class="dropdown-trigger" src="[[gravatar]]" alt="Log Out" title="Log Out"></paper-icon-button>
         <paper-menu class="dropdown-content">
           <paper-item on-tap="logout">Log Out</paper-item>
         </paper-menu>
       </paper-menu-button>
-      <span class="user-email"><a class="linkedin-link" href$="[[linkedInProfile]]" target="_new">[[emailId]]</a></span>
+      <span class="user-email"><a href$="[[user.google.cachedUserProfile.link]]" target="_new">[[user.google.displayName]]</a></span>
     </div>
     <paper-dialog id="loginDialog" entry-animation="scale-up-animation" exit-animation="fade-out-animation">
       <h2 class="login-title">Log In</h2>
