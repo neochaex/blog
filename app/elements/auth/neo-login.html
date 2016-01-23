@@ -9,19 +9,19 @@
         width:350px;
         min-width:350px;
       }
-      paper-button {
-        margin: 5px;
-        padding-left: 10px;
-        padding-right: 10px;
+      .google {        
+        background: url('/images/login/google.png') transparent 5px 50% no-repeat;
+        background-size: 28px;
+      }
+      .facebook {
+        background: url('/images/login/facebook.png') transparent 5px 50% no-repeat;
+        background-size: 28px;
       }
       paper-button.facebook {
         background-color: #4c69ba;
       }
       paper-button.google {
         background-color: #dc4e41;
-      }
-      paper-menu-button {
-        padding:0;
       }
       .hide {
         display: none !important;
@@ -34,19 +34,26 @@
       }
       .login-icon {
         display: inline-block;
-        vertical-align: middle;
-        border: 0;
       }
-      .google {        
-        background: url('/images/login/google.png') transparent 5px 50% no-repeat;
-        background-size: 28px;
+      paper-button.facebook {
+        background-color: #4c69ba;
       }
-      .facebook {
-        background: url('/images/login/facebook.png') transparent 5px 50% no-repeat;
-        background-size: 28px;
+      paper-button.google {
+        background-color: #dc4e41;
       }
-      .dropdown-content {
-        padding:0;
+      paper-dialog {
+        background-color:white;
+        width:350px;
+        min-width:350px;
+      }
+      paper-button {
+        margin: 5px;
+        padding-left: 10px;
+        padding-right: 10px;
+      }
+      a {
+        text-decoration: none;
+        color: white;
       }
       .dropdown-content paper-item {
         padding: 0 10px;
@@ -54,9 +61,11 @@
         font-size: small;
         cursor: pointer;
       }
-      a {
-        text-decoration: none;
-        color: white;
+      .dropdown-content {
+        padding:0;
+      }
+      paper-menu-button {
+        padding:0;
       }
     </style>
     <firebase-auth id="firebaseLogin" 
