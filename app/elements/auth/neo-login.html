@@ -171,7 +171,7 @@
             return;
           }
           this.provider = typeof provider === 'string' ? provider : 'password';
-          var params = null;
+          var params = {};
           var valid = true;
           if (this.provider === 'password') {
             params = this.validateUserInput();
