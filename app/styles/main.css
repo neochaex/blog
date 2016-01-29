@@ -12,3 +12,15 @@ body {
   font-family: 'Roboto', 'Helvetica Neue', Helvetica, Arial, sans-serif;
   color: #333;
 }
+
+.main-pages {
+	padding: 20px 25px !important;
+}
+
+/*CKE*/
+neo-comment-list .cke_top, neo-comment-list .cke_bottom, neo-comment-list iframe body, neo-comment-list iframe p{
+	height: 0 !important;
+	padding: 0 !important;
+	margin: 0 !important;
+	border: 0 !important;
+}

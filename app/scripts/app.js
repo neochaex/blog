@@ -34,6 +34,13 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
   // have resolved and content has been stamped to the page
   app.addEventListener('dom-change', function() {
     console.log('Our app is ready to rock!');
+    var loginEl = document.querySelector('neo-login');
+    loginEl.addEventListener('login', function(e) {
+      app.fire('login',{user: e.user});
+    });
+    loginEl.addEventListener('logout', function(e) {
+      app.fire('logout',{uid: e.uid});
+    });
   });
 
   // See https://github.com/Polymer/polymer/issues/1381
@@ -76,6 +83,91 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
 
   app.closeDrawer = function() {
     app.$.paperDrawerPanel.closeDrawer();
+  };
+
+  app.onRefresh = function() {
+    location.reload();
+  };
+
+  //global values
+  app._data_ = {
+    firebase: {
+      url: 'https://neochaex.firebaseio.com',
+      articles: 'https://neochaex.firebaseio.com/web/articles',
+      userInfos: 'https://neochaex.firebaseio.com/web/users'
+    },
+    user: null
+  };
+
+  app.getData = function(name) {
+    return app._data_[name];
+  };
+
+  app.setData = function(name, value) {
+    app._data_[name] = value;
+
+  };
+
+  app.isAdmin = function() {
+    var user = app.getData('user');
+    if (user) {
+      if (user.email === 'neochaex@gmail.com') {
+        return true;
+      }
+    }
+    return false;
+  };
+
+  app.hasRole = function(role) {
+    var user = app.getData('user');
+    if (user.role) {
+      if (user.role.split('|').indexOf(role) > -1) {
+        return true;
+      }
+    }
+    return false;
+  };
+
+  app.showMessage = function(msg) {
+    var toast = document.getElementById('globalMessageToast');
+    toast.text = msg;
+    toast.show();
+  };
+
+  app.util = {
+    sortData: function(snap, asc) {
+      //descending
+      var results = [];
+      var map = {};
+      var data;
+      var key;
+      snap.forEach(function(s) {
+        data = s.val();
+        key = s.key();
+        data.key = key;
+        map[data.key] = data;
+        results.push(data);
+      });
+      if (!asc) {
+        results = results.reverse();
+      }
+      return {arr: results, map: map};
+    },
+    findParent: function(el, cls) {
+      for (var i = 0; i < 30; i++) {
+        if (el.className.split(' ').indexOf(cls) > -1) {
+          return el;
+        } else {
+          el = el.parentNode;
+        }
+      }
+      return false;
+    },
+    getCKECssFilePath: function(part) {
+      if (part === 'content') {
+        return '/styles/ckecontent.css';
+      }
+    }
   };
 
 })(document);

@@ -3,44 +3,8 @@
 
 <dom-module id="neo-login">
   <template>
-    <style include="shared-styles">
-      paper-dialog {
-        background-color:white;
-        width:350px;
-        min-width:350px;
-      }
-      .google {        
-        background: url('/images/login/google.png') transparent 5px 50% no-repeat;
-        background-size: 28px;
-      }
-      .facebook {
-        background: url('/images/login/facebook.png') transparent 5px 50% no-repeat;
-        background-size: 28px;
-      }
-      paper-button.facebook {
-        background-color: #4c69ba;
-      }
-      paper-button.google {
-        background-color: #dc4e41;
-      }
-      .hide {
-        display: none !important;
-      }
-      .login-container {
-        display: inline-block;
-      }
-      .button-container {
-        text-align: center;
-      }
-      .login-icon {
-        display: inline-block;
-      }
-      paper-button.facebook {
-        background-color: #4c69ba;
-      }
-      paper-button.google {
-        background-color: #dc4e41;
-      }
+    <style include="shared-styles"></style>
+    <style>
       paper-dialog {
         background-color:white;
         width:350px;
@@ -51,21 +15,53 @@
         padding-left: 10px;
         padding-right: 10px;
       }
-      a {
-        text-decoration: none;
-        color: white;
+      paper-button.blue {
+        background-color: #4285f4;
+        color:white;
+        font-weight: 500;
       }
-      .dropdown-content paper-item {
-        padding: 0 10px;
-        min-height: 0px;
+      paper-button.facebook {
+        background-color: #4c69ba;
+      }
+
+      paper-button.google {
+        background-color: #dc4e41;
+      }
+
+      .login-container, .logout-container {
+        display: inline-block;
+      }
+
+      .logout-container {
+      }
+
+      .button-container {
+        text-align: center;
+      }
+
+      .form-container {
+        padding: 0 50px;
+      }
+      
+      .login-icon {
+        display: inline-block;
+        vertical-align: middle;
+        border: 0;
+      }
+      .google {        
+        background: url('/images/login/google.png') transparent 5px 50% no-repeat;
+        background-size: 28px;
+      }
+      .facebook {
+        background: url('/images/login/facebook.png') transparent 5px 50% no-repeat;
+        background-size: 28px;
+      }
+
+      .user-email {
+        font-weight: 100;
+        margin-left: -10px;
         font-size: small;
-        cursor: pointer;
-      }
-      .dropdown-content {
-        padding:0;
-      }
-      paper-menu-button {
-        padding:0;
+        color:white;
       }
     </style>
     <firebase-auth id="firebaseLogin" 
@@ -74,24 +70,40 @@
       location="{{location}}" 
       provider="{{provider}}"
       on-login="userUpdatedHandler" 
+      on-user-created="userUpdatedHandler" 
+      on-password-changed="userUpdatedHandler" 
+      on-password-reset="userUpdatedHandler" 
+      on-user-removed="userRemovedHandler"
+      on-error="errorHandler">
     </firebase-auth>
     <div class="login-container">
       <paper-button class="login" on-tap="openLogin">Log In</paper-button>
     </div>
     <div class="logout-container hide">
       <paper-menu-button id="userProfileMenu">
-        <paper-icon-button id="userIconImage" class="dropdown-trigger" src="[[gravatar]]" alt="Log Out" title="Log Out"></paper-icon-button>
+        <paper-icon-button id="userIconImage" class="dropdown-trigger" src="[[gravatar]]" alt="Edit Profile" title="Edit Profile"></paper-icon-button>
         <paper-menu class="dropdown-content">
+          <paper-item on-tap="openUpdateProfile">Update Profile</paper-item>
           <paper-item on-tap="logout">Log Out</paper-item>
         </paper-menu>
       </paper-menu-button>
-      <span class="user-email"><a href$="[[user.google.cachedUserProfile.link]]" target="_new">[[user.google.displayName]]</a></span>
+      <span class="user-email"><a class="linkedin-link" href$="[[linkedInProfile]]" target="_new">[[emailId]]</a></span>
     </div>
     <paper-dialog id="loginDialog" entry-animation="scale-up-animation" exit-animation="fade-out-animation">
       <h2 class="login-title">Log In</h2>
+      <div class="form-container">
+        <paper-input id="loginEmail" label="* Email" required auto-validate error-message="required an email" focused="true" type="email" pattern="[A-Za-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,4}$"></paper-input>
+        <paper-input id="loginPassword" label="* Password" type="password" required auto-validate error-message="required a password" on-keyup="changedPassword"></paper-input>
+        <paper-input id="confirmPassword" class="hide" label="* Confirm password" type="password" error-message="password is not same"></paper-input>
+        <paper-input id="linkedInProfile" class="hide" label="LinkedIn"></paper-input>
+      </div>
       <div class="button-container">
+        <paper-button id="loginButton" raised on-tap="login" style="width:100px;">Log In</paper-button>
+        <paper-button id="signupButton" raised on-tap="signup" style="width:100px;">Sign Up</paper-button>
+        <paper-button id="resetPasswordButton" on-tap="resetPassword">Reset Password</paper-button>
         <paper-button id="loginFacebookButton" raised class="facebook" on-tap="loginFacebook" style="width:230px;padding-left:30px;"><span class="login-icon facebook"></span>Sign in with Facebook</paper-button>
         <paper-button id="loginGoogleButton" raised class="google" on-tap="loginGoogle" style="width:230px;padding-left:30px;"><span class="login-icon google"></span>Sign in with Google</paper-button>
+        <paper-button id="updateProfileButton" class="hide" raised on-tap="updateProfile">Update Profile</paper-button></br></br>
       </div>
     </paper-dialog>
   </template>
@@ -104,6 +116,14 @@
           provider: {
             type: String,
             value: 'anonymous'
+          },
+          email: {
+            type: String,
+            value: ''
+          },
+          emailId: {
+            type: String,
+            value: ''
           },
           user: {
             type: Object,
@@ -118,33 +138,354 @@
           },
           location: {
             value: function() {
-              return 'https://neochaex.firebaseio.com';
+              var firebase = app.getData('firebase');
+              return firebase.url;
             }
+          },
+          mode: {
+            type: String,
+            value: 'LOGIN', //LOGIN, SIGNUP, UPDATE_PROFILE, RESET_PASSWORD
+            observer: '_modeChanged'
+          },
+          linkedInProfile: {
+            type: String,
+            value: ''
           }
         },
         openLogin: function() {
+          this.mode = 'LOGIN';
           this.$.loginDialog.resetFit();
           this.$.loginDialog.open();
         },
+        openUpdateProfile: function() {
+          this.mode = 'UPDATE_PROFILE';
+          this.$.loginDialog.resetFit();
+          this.$.linkedInProfile.value = this.user.linkedInProfile;
+          this.$.loginDialog.open();
+          this.$.userProfileMenu.close();
+        },
         login: function(provider) {
-          this.provider = provider;
-          this.$.firebaseLogin.login();
+          if (this.mode !== 'LOGIN') {
+            //load signup form
+            this.mode = 'LOGIN';
+            return;
+          }
+          this.provider = typeof provider === 'string' ? provider : 'password';
+          var params = null;
+          var valid = true;
+          if (this.provider === 'password') {
+            params = this.validateUserInput();
+            valid = params ? true : false;
+          }
+          if (valid) {
+            this.$.firebaseLogin.login(params);
+            app.showMessage('login...');
+          }
+        },
+        changedPassword: function(e) {
+          if (e.keyCode === 13) {
+            this.login();
+          }
         },
         loginGoogle: function() {
           this.login('google');
         },
+        loginFacebook: function() {
+          this.login('facebook');
+        },
         logout: function() {
+          var uid = this.user.uid;
           this.$.firebaseLogin.logout();
+          this.user = null;
+          app.setData('user', null);
+          this.fire('logout', {uid: uid});
           this.showLoginContainer(true);
+          this.mode = '';
+          location.reload();
+        },
+        signup: function() {
+          if (this.mode !== 'SIGNUP') {
+            //load signup form
+            this.mode = 'SIGNUP';
+            return;
+          } 
+          //send signup information
+          var params = this.validateUserInput();
+          if (params) {
+            this.$.firebaseLogin.createUser(params.email, params.password);
+          }
+        },
+        validateUserInput: function() {
+          var emailField = this.$.loginEmail;
+          var passwordField = this.$.loginPassword;
+          var confirmPasswordField = this.$.confirmPassword;
+          var linkedInProfile = this.$.linkedInProfile;
+          var valid = false;
+          var params = null;
+          switch (this.mode) {
+            case 'SIGNUP':
+              if (emailField.validate() && passwordField.validate() && passwordField.value === confirmPasswordField.value) {
+                valid = true;
+              }
+            break;
+            case 'UPDATE_PROFILE':
+              if (linkedInProfile.value || (passwordField.validate() && confirmPasswordField.validate())) {
+                valid = true;
+              }
+            break;
+            case 'RESET_PASSWORD':
+              if (emailField.validate()) {
+                valid = true;
+              }
+            break;
+            default:
+              if (emailField.validate() && passwordField.validate()) {
+                valid = true;
+              }
+          }
+          
+          if (valid) {
+            params = {
+              email: emailField.value,
+              password: passwordField.value,
+              confirmPassword: confirmPasswordField.value,
+              linkedInProfile: linkedInProfile.value
+            };
+          }
+          this._lastParams = params;
+          return params;
+        },
+        _modeChanged: function(newValue) {
+          var titleEl = this.$.loginDialog.querySelector('.login-title');
+          if (titleEl) {
+            var emailField = this.$.loginEmail;
+            var passwordField = this.$.loginPassword;
+            var confirmPasswordField = this.$.confirmPassword;
+            var linkedInProfileField = this.$.linkedInProfile;
+
+            var loginButton = this.$.loginButton;
+            var signupButton = this.$.signupButton;
+            var updateProfileButton = this.$.updateProfileButton;
+            var resetPasswordButton = this.$.resetPasswordButton;
+            var loginGoogleButton = this.$.loginGoogleButton;
+            var loginFacebookButton = this.$.loginFacebookButton;
+
+            emailField.value = this.email;
+            emailField.invalid = false;
+            passwordField.label = '* Password';
+            passwordField.value = '';
+            passwordField.invalid = false;
+            confirmPasswordField.label = '* Confirm Password';
+            confirmPasswordField.value = '';
+            confirmPasswordField.invalid = false;
+
+            var state = {
+              email: true,
+              password: true,
+              confirmPassword: false,
+              linkedInProfile: false,
+              title: 'Log In',
+              emailDisabled: false,
+              coloredLoginButton: true,
+              coloredSignupButton: false,
+              coloredUpdateProfileButton: false,
+              coloredResetPasswordButton: false,
+
+              loginButton: true,
+              signupButton: true,
+              resetPasswordButton: true,
+              updateProfileButton: false,
+              loginGoogleButton: true,
+              loginFacebookButton: true
+            };
+            switch (newValue) {
+              case 'SIGNUP':
+                state.title = 'Sign Up';
+                state.confirmPassword = true;
+                state.linkedInProfile = true;
+                state.coloredLoginButton = false;
+                state.coloredSignupButton = true;
+                state.loginGoogleButton = false;
+                state.loginFacebookButton = false;
+                state.resetPasswordButton = false;
+              break;
+              case 'UPDATE_PROFILE':
+                state.title = 'Update Profile';
+                state.emailDisabled = true;
+                state.confirmPassword = true;
+                state.linkedInProfile = true;
+                state.loginButton = false;
+                state.updateProfileButton = true;
+                state.coloredUpdateProfileButton = true;
+                state.loginFacebookButton = false;
+                state.loginGoogleButton = false;
+                state.signupButton = false;
+                state.resetPasswordButton = false;
+                passwordField.label = 'Old Password';
+                confirmPasswordField.label = 'New Password';
+              break;
+              case 'RESET_PASSWORD':
+                state.title = 'Reset Password';
+                state.password = false;
+                state.confirmPassword = false;
+                state.linkedInProfile = false;
+                state.coloredLoginButton = false;
+                state.loginFacebookButton = false;
+                state.loginGoogleButton = false;
+                state.signupButton = false;
+                state.resetPasswordButton = true;
+                state.coloredResetPasswordButton = true;
+              break;
+            }
+            this.toggleClass('blue', state.coloredLoginButton, loginButton);
+            this.toggleClass('blue', state.coloredSignupButton, signupButton);
+            this.toggleClass('blue', state.coloredResetPasswordButton, resetPasswordButton);
+            resetPasswordButton.raised = state.coloredResetPasswordButton;
+            this.toggleClass('blue', state.coloredUpdateProfileButton, updateProfileButton);
+
+            titleEl.textContent = state.title;
+            emailField.disabled = state.emailDisabled;
+            this._hide(emailField, !state.email);
+            this._hide(passwordField, !state.password);
+            this._hide(confirmPasswordField, !state.confirmPassword);
+            this._hide(linkedInProfileField, !state.linkedInProfile);
+
+            this._hide(loginButton, !state.loginButton);
+            this._hide(signupButton, !state.signupButton);
+            this._hide(updateProfileButton, !state.updateProfileButton);
+            this._hide(resetPasswordButton, !state.resetPasswordButton);
+            this._hide(loginGoogleButton, !state.loginGoogleButton);
+            this._hide(loginFacebookButton, !state.loginFacebookButton);
+          }
+        },
+        _hide: function(el, hide) {
+          this.toggleClass('hide', hide, el);
         },
         userUpdatedHandler: function() {
-          this.gravatar = this.user.google.profileImageURL;
+          if (this.mode === 'SIGNUP') {
+            this._loginBySignup = true;
+            this.mode = 'LOGIN';
+            this.provider = 'password';
+            this.user = null;
+            app.setData('user', null);
+            this.$.firebaseLogin.login(this._lastParams);
+            this.$.loginDialog.close();
+          } else {
+            this.initUserInfo();
+            this.$.loginDialog.close();
+            app.showMessage(this.user.email);
+            this.showLoginContainer(false);
+          }
+        },
+        initUserInfo: function() {
+          var userInfo;
+          if (this.user.facebook) {
+            userInfo = this.user.facebook;
+          } else if (this.user.google) {
+            userInfo = this.user.google;
+          } else {
+            userInfo = this.user.password;
+          }
+          this.user.email = this.email = userInfo.displayName || userInfo.email;
+          this.emailId = this.email.split('@')[0];
+          this.gravatar = userInfo.profileImageURL;
+          this.user.userInfo = userInfo;
+          if (this.mode === 'UPDATE_PROFILE' || this._loginBySignup) {
+            this.checkLinkedIn();
+          }
+          this.updateUserData();
+        },
+        checkLinkedIn: function() {
+          this.user.linkedInProfile = this._lastParams.linkedInProfile;
+        },
+        updateUserData: function() {
+          var fb;
+          var fbUser;
+          var userInfoUrl;
+          userInfoUrl = app.getData('firebase').userInfos;
+          /* jshint ignore:start */
+          fb = new Firebase(userInfoUrl);
+          /* jshint ignore:end */
+          fbUser = fb.child(this.user.uid);
+          var me = this;
+          this._updatedUserInfos = false;
+          fbUser.on('value', function(snap) {
+            var user = snap.val();
+            if ((me.mode === 'UPDATE_PROFILE' || me._loginBySignup) && !me._updatedUserInfos) {
+              me._updatedUserInfos = true;
+              me._loginBySignup = false;
+              var userData = me.normalizeUserData(me.user);
+              if (user) {
+                fbUser.update(userData);
+              } else {
+                //new user info
+                userData.role = '';
+                fb.child(me.user.uid).set(userData);
+              }
+              me.user.linkedInProfile = userData.linkedInProfile;
+              me.linkedInProfile = userData.linkedInProfile;
+            } else if (me.mode === 'LOGIN') {
+              if (user) {
+                me.user.role = user.role;
+                me.user.linkedInProfile = user.linkedInProfile;
+                me.linkedInProfile = user.linkedInProfile;
+                app.setData('user', me.user);
+                me.fire('login', {user: user});
+              }
+            }
+          });
+        },
+        normalizeUserData: function(user) {
+          var data = {
+            uid: user.uid,
+            linkedInProfile: user.linkedInProfile,
+            email: user.email
+          };
+          return data;
+        },
+        
+        errorHandler: function(e) {
+          app.showMessage('Error: ' + e.detail.message);
           this.$.loginDialog.close();
-          this.showLoginContainer(false);
+        },
+        updateProfile: function() {
+          var params; 
+          var valid;
+          params = this.validateUserInput();
+          valid = params ? true : false;
+          if (valid) {
+            if (params.password && params.confirmPassword) {
+              this.$.firebaseLogin.changePassword(
+                this.email, 
+                params.password, 
+                params.confirmPassword
+              );
+            } else {
+              this.checkLinkedIn();
+              this.updateUserData();
+            }
+          }
+          app.showMessage('Updated your profile!');
+          this.$.loginDialog.close();
+        },
+        resetPassword: function() {
+          var params;
+          var valid;
+          if (this.mode !== 'RESET_PASSWORD') {
+            this.mode = 'RESET_PASSWORD';
+            return;
+          } 
+          params = this.validateUserInput();
+          valid = params ? true : false;
+          if (valid) {
+            this.$.firebaseLogin.sendPasswordResetEmail(this.email);
+            app.showMessage('Email was sended to reset your password!');
+            this.$.loginDialog.close();
+          }
         },
         showLoginContainer: function(show) {
-          this.toggleClass('hide',!show,this.$$('.login-container'));
-          this.toggleClass('hide',show,this.$$('.logout-container'));
+          this._hide(this.$$('.login-container'), !show);
+          this._hide(this.$$('.logout-container'), show);
         }
       });
     })();

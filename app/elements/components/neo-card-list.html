@@ -1,0 +1,471 @@
+<dom-module id="neo-card-list">
+	<template>
+		<style include="shared-styles"></style>
+		<style>
+			paper-dialog {
+		        background-color: white;
+		        max-width: 350px;
+		        max-height: 300px;
+	        }
+			paper-button {
+				padding: 5px;
+			}
+			paper-button.blue {
+				background-color: #4285f4;
+				color: white;
+			}
+			paper-card {
+				width: 100%;
+				margin-bottom: 16px;
+			} 
+
+			.card-list-header {
+				position: relative;
+				margin-bottom: 5px;
+			}
+
+			.header-buttons {
+				display: inline-block;
+				position: absolute;
+				right: 0;
+			}
+
+			.article-search {
+				display: inline-block;
+			}
+
+			.gravatar {
+				display: inline-block;
+			    left: 15px;
+			    width: 30px;
+			    height: 30px;
+			    position: absolute;
+			}
+			.content-title-container {
+				overflow: auto;
+				margin: 0 40px;
+				padding-top: 10px;
+			}
+			.content-title {
+				margin-left: 40px;
+			}
+			.content-title-readonly {
+				display: inline-block;
+				font-size: larger;
+    			font-weight: bold;
+    			cursor: pointer;
+			}
+			.edit-menu {
+				position: absolute;
+				right: 0;
+				top: 0;
+			}
+
+			.editing .gravatar, .editing-article .gravatar {
+				margin-top: 20px;
+			}
+
+			.editing .content-title-input, .editing-article .content-title-input {
+				margin-top: -20px;
+			}
+
+			.card-content .card-content-edit {
+				display: none;
+			}
+
+			.editing-article .card-content-edit {
+				display: block;
+			}
+
+			.editing-article .content-readonly {
+				display: none;
+			}
+
+			.card-content-edit .content-footer {
+				padding-top: 10px;
+				text-align: right;
+			}
+
+			.card-list-body .card-list-body-cards .content-editor .card-content .content-footer{
+				padding: 10px 0 0 0;
+				text-align: right;
+			}
+
+			.readonly .content-editor, .readonly paper-menu-button, .readonly .card-content-edit, .readonly .edit-menu, .readonly .article-add-button {
+				display: none !important;
+			}
+
+			.article-username {
+				display: inline-block;
+			    position: absolute;
+			    font-size: xx-small;
+			    font-weight: lighter;
+			    left: 55px;
+			}
+
+			.articles-title {
+				font-size: x-large;
+			    font-weight: bold;
+			    margin-bottom: 20px;
+			    display: inline-block;
+			}
+			.comments-container {
+				padding-top: 10px;
+			}
+		</style>
+		<paper-dialog id="deletePostDialog" entry-animation="scale-up-animation" exit-animation="fade-out-animation">
+	      <h2>Delete Post</h2>
+	      <div class="delete-msg">Are you sure you want to delete this?</div>
+	      <div class="button-container">
+	      	<paper-button id="cancelDeleteButton" raised on-tap="cancelDeleteCard">Cancel</paper-button>
+	        <paper-button id="deleteButton" raised on-tap="doDeleteCard">Delete Post</paper-button>
+	      </div>
+	    </paper-dialog>
+		<div class="card-list-header">
+			<span class="articles-title">[[title]]</span>
+			<div class="header-buttons">
+				<paper-input id="articleSearch" class="article-search" no-label-float on-keyup="inputSearch"></paper-input>
+				<paper-icon-button class="article-search-button" icon="search" on-tap="doSearch" alt="Search" title="Search"></paper-icon-button>
+				<paper-icon-button class="article-add-button" icon="create" alt="add article" title="add article" on-tap="addArticle"></paper-icon-button>
+			</div>
+		</div>
+		<div class="card-list-body">
+			<div class="card-list-body-cards">
+				<div class="content-editor hide">
+					<paper-card>
+						<div class="card-content editing">
+							<div class="content-header">
+								<img src="[[gravatar]]" class="gravatar"/>
+								<paper-input id="contentTitle" class="content-title content-title-input" label="Title" required error-message="required a title" focused="true"></paper-input>
+							</div>
+							<div class="content-body">
+								<textarea class="article-editor"></textarea>
+							</div>
+							<div class="content-footer">
+								<paper-button id="postButton" class="blue" raised on-tap="createArticle">Post</paper-button>
+							</div>
+						</div>
+					</paper-card>
+				</div>
+				<div class="content-list">
+					<template is="dom-repeat" items="[[articles]]" as="article">
+						<paper-card>
+							<div class="card-content" data-key$="[[article.key]]">
+								<div class="content-header content-readonly">
+									<img src="[[article.profileImageURL]]" class="gravatar"/>
+									<span class="article-username"><a class="linkedin-link" href$="[[article.linkedInProfile]]" target="_new">[[article.userName]]</a></span>
+									<div class="content-title-container" on-tap="toggleTitle">
+										<span class="content-title-readonly">[[article.title]]</span>
+									</div>
+									<paper-menu-button class="edit-menu">
+										<paper-icon-button class="dropdown-trigger" icon="more-vert" alt="menu" title="menu"></paper-icon-button>
+										<paper-menu class="dropdown-content">
+											<paper-item on-tap="editCard">Edit</paper-item>
+											<paper-item on-tap="deleteCard">Delete</paper-item>
+										</paper-menu>
+									</paper-menu-button>
+								</div>
+								<div class="content-body content-readonly content-body-readonly hide">
+									<div class="card-article-content" inner-h-t-m-l="[[article.content]]"></div>
+								</div>
+								<div class="card-content-edit">
+									<div class="content-header">
+										<img src="[[article.profileImageURL]]" class="gravatar"/>
+										<paper-input class="content-title content-title-input" label="Title" required error-message="required a title" focused="true" value=""></paper-input>
+									</div>
+									<div class="content-body">
+										<textarea class="article-editor"></textarea>
+									</div>
+									<div class="content-footer">
+										<paper-button raised on-tap="cancelEditCard">Cancel</paper-button>
+										<paper-button class="blue" raised on-tap="doEditCard">Done</paper-button>
+									</div>
+								</div>
+								<div class="content-footer">
+									<div class="comments-container">
+										<neo-comment-list location="[[article.key]]" count="[[article.commentCount]]"></neo-comment-list>
+									</div>
+								</div>
+							</div>
+						</paper-card>
+					</template>
+				</div>
+			</div>
+		</div>
+		<div class="card-list-footer"></div>
+	</template>
+	<script>
+		Polymer({
+			is: 'neo-card-list',
+			properties: {
+				gravatar: {
+					type: String,
+					value: ''
+				},
+				articleType: {
+					type: String,
+					value: ''
+				},
+				user: {
+					type: Object,
+					value: function() {
+						return app.getData('user');
+					}
+				},
+				articles: {
+					type: Object,
+					value: []
+				},
+				readOnlyMode: {
+					type: Boolean,
+					value: true
+				},
+				readonly: {
+					type: Boolean,
+					value: false
+				},
+				title: {
+					type: String,
+					value: ''
+				}
+			},
+		    attached: function() {
+		    	this.initEditor();
+		    	this.checkUser();
+		    	var me = this;
+		    	app.addEventListener('login', function() {
+		    		me.checkUser();
+		    	});
+		    	app.addEventListener('logout', function() {
+		    		me.checkUser();
+		    	});
+		    },
+		    checkUser: function() {
+		    	this.user = app.getData('user');
+		    	if (this.user) {
+			    	this.gravatar = this.user.userInfo.profileImageURL;
+			    	//permission check
+			    	if (this.checkRole()) {
+				    	this.connectData(true);
+				    	if (this.readonly && !app.isAdmin()) {
+				    		this.setReadOnly(true);
+				    	} else {
+				    		this.style.display = 'block';
+				    		this.setReadOnly(false);
+				    	}
+				    } else {
+				    	this.gravatar = '';
+				    	this.connectData(false);
+				    	this.setReadOnly(true);
+				    }
+			    } else {
+			    	this.gravatar = '';
+			    	this.connectData(false);
+			    	this.setReadOnly(true);
+			    	if (!this.readOnlyMode) {
+			    		this.style.display = 'none';
+			    	} else {
+			    		this.connectData(true);
+			    		this.style.display = 'block';
+			    	}
+			    }
+		    	return this.user;
+		    },
+		    checkRole: function() {
+	    		if (this.articleType === 'study') {
+	    			if (app.hasRole(this.articleType)) {
+	    				return true;
+	    			} else {
+	    				app.showMessage('You don\'t have a permission. Request the permission to the adminitrator!');
+	    			}
+	    		} else {
+	    			return true;
+	    		}
+		    	return false;
+		    },
+		    setReadOnly: function(readonly) {
+		    	this.toggleClass('readonly', readonly, this.$$('.card-list-body'));
+			    this.toggleClass('readonly', readonly, this.$$('.card-list-header'));
+		    },
+		    connectData: function(connect) {
+		    	if (!connect) {
+		    		this.articles = this._originArticles = [];
+		    		this.firebase = null;
+		    	} else {
+		    		/* jshint ignore:start */
+		    		var location = app.getData('firebase').articles;
+		    		this.firebase = new Firebase(location);
+		    		/* jshint ignore:end */
+			    	var ref = this.firebase.orderByChild('articleType').equalTo(this.articleType);
+			    	this._articlesMap = {};
+			    	//descending
+			    	var me = this;
+			    	ref.on('value', function(snap) {
+			    		var data = app.util.sortData(snap);
+			    		me._articlesMap = data.map;
+			    		me.articles = me._originArticles = data.arr;
+			    		//console.log(me.articles);
+			    	});
+			    }
+		    },
+		    initEditor: function() {
+		    	//init editor
+		    	var editorEl = this.$$('.article-editor');
+		    	if (editorEl) {
+		    		/* jshint ignore:start */
+		    		this._editor = CKEDITOR.replace(editorEl);
+		    		/* jshint ignore:end */
+		    	}
+		    },
+		    createArticle: function() {
+		    	if (this.user) {
+		    		var titleEl = this.$.contentTitle;
+			    	if (titleEl.validate()) {
+			    		var title = titleEl.value;
+		    			var content = this._editor.getData();
+		    			var img = this.user.userInfo.profileImageURL;
+		    			var uid = this.user.uid;
+		    			var name = this.user.email.split('@')[0];
+		    			var articleType = this.articleType;
+			    		var article = {
+			    			//id: (new Date()).getTime()
+			    			uid: uid,
+			    			userName: name, 
+			    			profileImageURL: img,
+			    			title: title,
+			    			content: content,
+			    			articleType: articleType,
+			    			createdDate: (new Date()).getTime(),
+			    			commentCount: 0,
+			    			comments: null,
+			    			linkedInProfile: this.user.linkedInProfile
+			    		};
+			    		var newArticle = this.firebase.push();
+			    		newArticle.set(article);
+			    		this._editor.setData('');
+			    		titleEl.value = '';
+			    	}
+			    	this.toggleClass('hide', true, this.$$('.content-editor'));
+			    	app.showMessage('Added an article...');
+			    } else {
+			    	app.showMessage('Please login for writting an article!!');
+			    }
+		    },
+		    deleteCard: function(e) {
+		    	var updateInfo = this.findUpdateInfo(e.target);
+		    	if (updateInfo.key) {
+		    		if (this.checkPermission(updateInfo.data)) {
+			    		this.editItem = updateInfo;
+			    		this.$.deletePostDialog.resetFit();
+			    		this.$.deletePostDialog.open();
+			    	}
+		    	}
+		    },
+		    doDeleteCard: function() {
+		    	this.firebase.child(this.editItem.key).remove();
+		    	this.$.deletePostDialog.close();
+		    	app.showMessage('Deleted: ' + this.editItem.data.title);
+		    	this.editItem = null;
+		    },
+		    cancelDeleteCard: function() {
+		    	this.editItem = null;
+		    	this.$.deletePostDialog.close();
+		    },
+		    editCard: function(e) {
+		    	var updateInfo = this.findUpdateInfo(e.target);
+		    	if (updateInfo.key) {
+		    		if (this.checkPermission(updateInfo.data)) {
+			    		this.editItem = updateInfo;
+			    		updateInfo.el.querySelector('paper-input').value = updateInfo.data.title;
+			    		/* jshint ignore:start */
+			    		this._updateEditor = CKEDITOR.replace(updateInfo.el.querySelector('textarea'));
+			    		/* jshint ignore:end */
+			    		this._updateEditor.setData(updateInfo.data.content);
+			    		this.toggleClass('editing-article', true, updateInfo.el);
+			    	}
+		    	}
+		    },
+		    cancelEditCard: function() {
+		    	this.toggleClass('editing-article', false, this.editItem.el);
+		    	this.editItem = null;
+		    	this._updateEditor.destroy();
+		    },
+		    doEditCard: function() {
+		    	var item = this.editItem;
+		    	var data = {
+		    		title: item.el.querySelector('paper-input').value,
+		    		content: this._updateEditor.getData()
+		    	};
+		    	item.ref.update(data);
+		    	this.cancelEditCard();
+		    	app.showMessage('Updated: ' + data.title);
+		    },
+		    addArticle: function() {
+		    	var el,hide;
+		    	el = this.$$('.content-editor');
+		    	hide = true;
+		    	if (el.className.indexOf('hide') > -1) {
+		    		hide = false;
+		    	}
+		    	this.toggleClass('hide', hide, el);
+		    },
+		    inputSearch: function(e) {
+		    	if (e.keyCode === 13) {
+			        this.doSearch();
+			    }
+		    },
+		    doSearch: function() {
+		    	var keyword = this.$.articleSearch.value;
+		    	if (keyword) {
+		    		this.articles = this._originArticles.filter(function(value) {
+		    			return value.title.indexOf(keyword) > -1 || value.content.indexOf(keyword) > -1;
+		    		});
+		    	} else {
+		    		this.articles = this._originArticles;
+		    	}
+		    },
+		    findUpdateInfo: function(el) {
+		    	var updateInfo,menu;
+		    	updateInfo = {};
+		    	el = app.util.findParent(el,'card-content');
+		    	if (el.dataset && el.dataset.key) {
+	    			updateInfo.key = el.dataset.key;
+	    			updateInfo.el = el;
+	    			updateInfo.ref = this.firebase.child(updateInfo.key);
+	    			updateInfo.data = this._articlesMap[updateInfo.key];
+	    			menu = el.querySelector('.edit-menu');
+	    		}
+		    	if (menu) {
+		    		menu.close();
+		    	}
+		    	return updateInfo;
+		    },
+		    checkPermission: function(data) {
+		    	if (app.isAdmin()) {
+		    		return true;
+		    	}
+		    	var user = app.getData('user');
+		    	if (user) {
+		    		if (user.uid === data.uid) {
+		    			return true;
+		    		}
+		    	}
+		    	app.showMessage('You don\'t have enough permissions');
+		    	return false;
+		    },
+		    toggleTitle: function(e) {
+		    	var updateInfo = this.findUpdateInfo(e.target);
+		    	var hide = true;
+		    	if (updateInfo) {
+		    		var el = updateInfo.el.querySelector('.content-body-readonly');
+		    		if (el) {
+						if (el.className.indexOf('hide') > -1) {
+			    			hide = false;
+			    		}
+			    		this.toggleClass('hide', hide, el);
+		    		}
+		    	}
+		    }
+		});
+	</script>
+</dom-module>

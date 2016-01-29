@@ -1,7 +1,7 @@
 {
-  "preset": "google",
+  //"preset": "google",
   "disallowSpacesInAnonymousFunctionExpression": null,
   "disallowTrailingWhitespace": null,
-  "maximumLineLength": 100,
+  "maximumLineLength": 150,
   "excludeFiles": ["node_modules/**"]
 }

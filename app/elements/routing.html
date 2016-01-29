@@ -22,6 +22,16 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
     }
 
     // Middleware
+    function checkAuth(ctx, next) {
+      app.scrollPageToTop();
+      // var user = app.getData('user');
+      if (app.getData('user')) {
+        next();
+      } else {
+        app.route = 'login';
+      }
+    }
+
     function scrollToTop(ctx, next) {
       app.scrollPageToTop();
       next();
@@ -37,25 +47,8 @@ subject to an additional IP rights grant found at http://polymer.github.io/PATEN
       next();
     });
 
-    page('/', function() {
-      app.route = 'home';
-    });
-
-    page(app.baseUrl, function() {
-      app.route = 'home';
-    });
-
-    page('/users', function() {
-      app.route = 'users';
-    });
-
-    page('/users/:name', function(data) {
-      app.route = 'user-info';
-      app.params = data.params;
-    });
-
-    page('/contact', function() {
-      app.route = 'contact';
+    page('/', checkAuth, function() {
+      app.route = 'blog';
     });
 
     // 404

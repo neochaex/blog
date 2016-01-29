@@ -1,0 +1,332 @@
+<dom-module id="neo-comment-list">
+	<template>
+		<style include="shared-styles"></style>
+		<style>
+			:host {
+				margin-top: 10px;
+			}
+			paper-dialog {
+		        background-color:white;
+		        max-width:350px;
+		        max-height:300px;
+	        }
+	        .content-list {
+	        	padding: 0 0 10px 0;
+	        }
+			.content-list-header {
+				position: relative;
+				margin-left: 30px;
+				cursor:pointer;
+			}
+			.content-list-body {
+				position: relative;
+				margin-left: 30px;
+			}
+			.comment-item {
+				min-height: 30px;
+			}
+			.content {
+				position: relative;
+			}
+			.gravatar {
+				display: inline-block;
+			    width: 20px;
+			    height: 20px;
+			    position: absolute;
+			}
+			.username {
+				display: inline-block;
+			    position: absolute;
+			    font-size: xx-small;
+			    font-weight: lighter;
+			    left: 25px;
+			}
+			.content-wrap, .content-editor-wrap {
+			    margin: 0 25px;
+			    padding-top: 1px;
+			    font-size: small;
+			}
+			.content-editor-container, .content-update-container {
+				position: relative;
+			}
+			.create-content-button, .edit-menu, .update-content-button, .cancel-update-content-button {
+				position: absolute;
+				right:0;
+				top:0;
+			}
+			.create-content-button, .update-content-button, .cancel-update-content-button  {
+				padding:0;
+				width:20px;
+				height:20px;
+			}
+
+			.cancel-update-content-button {
+				top: 25px;
+			} 
+			.dropdown-trigger {
+				padding:0;
+				width:20px;
+				height:20px;
+			}
+			.readonly .content-editor-container, .readonly paper-menu-button {
+				display: none !important;
+			}
+		</style>
+		<paper-dialog id="deletePostDialog" entry-animation="scale-up-animation" exit-animation="fade-out-animation">
+	      <h2>Delete Comment</h2>
+	      <div class="delete-msg">Are you sure you want to delete this?</div>
+	      <div class="button-container">
+	      	<paper-button id="cancelDeleteButton" raised on-tap="cancelDeleteContent">Cancel</paper-button>
+	        <paper-button id="deleteButton" raised on-tap="doDeleteContent">Delete Post</paper-button>
+	      </div>
+	    </paper-dialog>
+		<div class="content-list-header" on-tap="showComments">
+			<div class="header-buttons">
+				<paper-icon-button icon="speaker-notes" alt="Comments" title="Comments"></paper-icon-button><span class="comments-count">[[count]]</span> <span>Comments</span>
+			</div>
+		</div>
+		<div class="content-list-body hide">
+			<div class="content-list">
+				<template is="dom-repeat" items="[[contents]]" as="content">
+					<div class="comment-item">
+						<div class="content">
+							<img src="[[content.profileImageURL]]" class="gravatar"/>
+							<span class="username"><a class="linkedin-link" href$="[[content.linkedInProfile]]" target="_new">[[content.userName]]</a></span>
+							<div class="content-wrap" inner-h-t-m-l="[[content.content]]"></div>
+							<paper-menu-button class="edit-menu">
+								<paper-icon-button class="dropdown-trigger" icon="more-vert" alt="menu" title="menu"></paper-icon-button>
+								<paper-menu class="dropdown-content">
+									<paper-item data-key$="[[content.key]]" on-tap="editContent">Edit</paper-item>
+									<paper-item data-key$="[[content.key]]" on-tap="deleteContent">Delete</paper-item>
+								</paper-menu>
+							</paper-menu-button>
+						</div>
+						<div class="content-update-container hide">
+							<img src="[[gravatar]]" class="gravatar"/>
+							<div class="content-editor-wrap">
+								<textarea class="content-update-editor"></textarea>
+							</div>
+							<paper-icon-button class="update-content-button" icon="check-circle" on-tap="doEditContent" alt="Update a comment" title="Update a comment"></paper-icon-button>
+							<paper-icon-button class="cancel-update-content-button" icon="cancel" on-tap="cancelEditContent" alt="Cancel updating a comment" title="Cancel updating a comment"></paper-icon-button>
+						</div>
+					</div>
+				</template>
+			</div>
+			<div class="content-editor-container">
+				<img src="[[gravatar]]" class="gravatar"/>
+				<div class="content-editor-wrap">
+					<textarea class="content-editor"></textarea>
+				</div>
+				<paper-icon-button class="create-content-button" icon="create" on-tap="createContent" alt="Create a comment" title="Create a comment"></paper-icon-button>
+			</div>
+		</div>
+	</template>
+	<script>
+		Polymer({
+			is: 'neo-comment-list',
+			properties: {
+		      gravatar: {
+		        type: String,
+		        value: ''
+		      },
+		      location: {
+		      	type: String,
+		        value: ''
+		      },
+		      user: {
+		      	type: Object,
+		      	value: function() {
+		          return app.getData('user');
+		        }
+		      },
+		      contents: {
+		      	type: Object,
+		      	value: []
+		      },
+		      readonly: {
+		      	type: Boolean,
+		      	value: false
+		      },
+		      count: {
+		      	type: Number,
+		      	value:0
+		      },
+		      linkedInLink: {
+		      	type: String,
+		      	value: ''
+		      }
+		    },
+		    init: function() {
+		    	this.initEditor();
+		    	this.checkUser();
+		    	var me = this;
+		    	app.addEventListener('login',function(){
+		    		me.checkUser();
+		    	});
+		    	app.addEventListener('logout',function(){
+		    		me.checkUser();
+		    	});
+		    },
+		    checkUser: function() {
+		    	this.user = app.getData('user');
+		    	if (this.user) {
+			    	this.gravatar = this.user.userInfo.profileImageURL;
+			    	this.linkedInLink = this.user.linkedInLink;
+			    } else {
+			    	this.readonly = true;
+			    }
+			    this.connectData();
+		    	if (this.readonly && !app.isAdmin()) {
+		    		this.setReadOnly(true);
+		    	} else {
+		    		this.setReadOnly(false);
+		    	}
+		    	return this.user;
+		    },
+		    setReadOnly: function(readonly) {
+		    	this.toggleClass('readonly',readonly,this.$$('.content-list-body'));
+		    },
+		    connectData: function() {
+		    	if (this.location) {
+		    		/* jshint ignore:start */
+		    		this.firebase = new Firebase(app.getData('firebase').articles + '/' + this.location + '/comments');
+		    		this.fbCount = new Firebase(app.getData('firebase').articles + '/' + this.location + '/commentCount');
+			    	/* jshint ignore:end */
+			    	//descending
+			    	var me = this;
+			    	this.map = {};
+			    	this.firebase.on('value',function(snap) {
+			    		var data = app.util.sortData(snap,true);
+			    		me.map = data.map;
+			    		me.contents = me._originContents = data.arr;
+			    		me.count = data.arr.length;
+			    		me.fbCount.set(me.count);
+			    	});
+		    	}
+		    },
+		    initEditor: function() {
+		    	//init editor
+		    	var editorEl = this.$$('.content-editor');
+		    	if (editorEl) {
+		    		/* jshint ignore:start */
+		    		this._editor = CKEDITOR.replace(editorEl, {toolbar:[],height:50,contentsCss:app.util.getCKECssFilePath('content')});
+		    		/* jshint ignore:end */
+		    	}
+		    },
+		    createContent: function() {
+		    	if (this.user) {
+		    		var content = this._editor.getData();
+		    		if (content) {
+		    			var img = this.user.userInfo.profileImageURL;
+		    			var uid = this.user.uid;
+		    			var name = this.user.email.split('@')[0];
+			    		var data = {
+			    			//id: (new Date()).getTime()
+			    			uid: uid,
+			    			userName: name, 
+			    			profileImageURL:img,
+			    			content: content,
+			    			createdDate: (new Date()).getTime(),
+			    			linkedInProfile: this.user.linkedInProfile
+			    		};
+			    		var newContent = this.firebase.push();
+			    		newContent.set(data);
+			    		this._editor.setData('');
+		    		}
+			    	app.showMessage('Added a comment...');
+			    } else {
+			    	app.showMessage('Please login for writting a comment!!');
+			    }
+		    },
+		    deleteContent: function(e) {
+		    	var el = e.target;
+		    	var key = el.dataset.key;
+		    	if (key) {
+		    		var data = this.map[key];
+		    		if (this.checkPermission(this.map[key])) {
+			    		this.editItem = data;
+			    		this.$.deletePostDialog.resetFit();
+			    		this.$.deletePostDialog.open();
+			    	}
+		    	}
+		    	app.util.findParent(el,'edit-menu').close();
+		    },
+		    checkPermission: function(data) {
+		    	if (app.isAdmin()) {
+		    		return true;
+		    	}
+		    	var user = app.getData('user');
+		    	if (user) {
+		    		if (user.uid === data.uid) {
+		    			return true;
+		    		}
+		    	}
+		    	app.showMessage('You don\'t have enough permissions');
+		    	return false;
+		    },
+		    doDeleteContent: function() {
+		    	this.firebase.child(this.editItem.key).remove();
+		    	this.$.deletePostDialog.close();
+		    	app.showMessage('Deleted the comment');
+		    	this.editItem = null;
+		    },
+		    cancelDeleteContent: function() {
+		    	this.editItem = null;
+		    	this.$.deletePostDialog.close();
+		    },
+		    editContent: function(e) {
+		    	var el = e.target;
+		    	var key = el.dataset.key;
+		    	if (key) {
+		    		var pEl = app.util.findParent(el,'comment-item');
+		    		var data = this.map[key];
+		    		if (this.checkPermission(data)) {
+		    			this._contentEl = pEl.querySelector('.content');
+		    			this._contentEditEl = pEl.querySelector('.content-update-container');
+		    			/* jshint ignore:start */
+		    			var editorEl = pEl.querySelector('.content-update-editor');
+			    		this._updateEditor = CKEDITOR.replace(editorEl, {toolbar:[],height:50,contentsCss:app.util.getCKECssFilePath('content')});
+			    		/* jshint ignore:end */
+			    		this._updateEditor.setData(data.content);
+		    			this.toggleClass('hide',true,this._contentEl);
+		    			this.toggleClass('hide',false,this._contentEditEl);
+			    		this.editItem = data;
+			    	}
+		    	}
+		    	app.util.findParent(el,'edit-menu').close();
+		    },
+		    cancelEditContent: function() {
+		    	this.editItem = null;
+		    	this._updateEditor.setData('');
+		    	this.toggleClass('hide',true,this._contentEditEl);
+		    	this.toggleClass('hide',false,this._contentEl);
+		    	this._updateEditor.destroy();
+		    	this._contentEl = null;
+		    	this._contentEditEl = null;
+		    },
+		    doEditContent: function() {
+		    	var item = this.editItem;
+		    	var data = {
+		    		content: this._updateEditor.getData()
+		    	};
+		    	var ref = this.firebase.child(item.key);
+		    	ref.update(data);
+		    	app.showMessage('Updated the comment');
+		    	this.cancelEditContent();
+		    },
+		    showComments: function() {
+		    	//when opening the comment list, connect the data.
+		    	if (!this.didInit) {
+		    		this.init();
+		    		this.didInit = true;
+		    	}
+		    	var el = this.$$('.content-list-body');
+		    	var hide = true;
+		    	if (el.className.indexOf('hide') > -1) {
+		    		hide = false;
+		    	}
+		    	this.toggleClass('hide',hide,el);
+		    }
+		});
+	</script>
+</dom-module>
