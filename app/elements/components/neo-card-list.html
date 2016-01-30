@@ -212,6 +212,11 @@
 						return app.getData('user');
 					}
 				},
+				//When articleType and UserRole are same, an user can access this article list.
+				articleTypeUserRole: {
+					type: Boolean,
+					value: false
+				},
 				articles: {
 					type: Object,
 					value: []
@@ -220,6 +225,7 @@
 					type: Boolean,
 					value: true
 				},
+				//When articleType and UserRole are same, an user can write an article.
 				readonly: {
 					type: Boolean,
 					value: false
@@ -247,7 +253,7 @@
 			    	//permission check
 			    	if (this.checkRole()) {
 				    	this.connectData(true);
-				    	if (this.readonly && !app.isAdmin()) {
+				    	if (this.readonly && !app.isAdmin() && !app.hasRole(this.articleType)) {
 				    		this.setReadOnly(true);
 				    	} else {
 				    		this.style.display = 'block';
@@ -272,7 +278,7 @@
 		    	return this.user;
 		    },
 		    checkRole: function() {
-	    		if (this.articleType === 'study') {
+	    		if (this.articleTypeUserRole) {
 	    			if (app.hasRole(this.articleType)) {
 	    				return true;
 	    			} else {
